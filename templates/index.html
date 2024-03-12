@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Code Editor</title>
+    <!-- Include CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.1/codemirror.min.css">
+    <!-- Include Dracula theme CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.1/theme/dracula.min.css">
+
+    <!-- Custom CSS for font color theme -->
+    <style>
+        .CodeMirror {
+            color: #f8f8f2;
+            /* Default font color */
+            background-color: #282a36;
+            /* Default background color */
+        }
+        
+        .cm-keyword {
+            color: #ff79c6;
+            /* Keyword color */
+        }
+        
+        .cm-atom {
+            color: #8be9fd;
+            /* Atom (constants, None, True, False) color */
+        }
+        
+        .cm-number {
+            color: #bd93f9;
+            /* Number color */
+        }
+        
+        .cm-string {
+            color: #f1fa8c;
+            /* String color */
+        }
+        
+        .cm-comment {
+            color: #6272a4;
+            /* Comment color */
+        }
+        
+        .cm-operator {
+            color: #f8f8f2;
+            /* Operator color */
+        }
+    </style>
+</head>
+
+<body>
+    <h1 style="color: black;">Code Editor</h1>
+    <form method="post" id="code-form">
+        {% csrf_token %}
+        <textarea name="code" id="code" cols="80" rows="20">{{ form.instance.code }}</textarea>
+        <br>
+        <button type="submit" onclick="executeCode()">Execute</button>
+        <button type="button" onclick="saveCode()">Save</button>
+        <!-- New button for saving -->
+    </form>
+
+
+    <div id="output"></div>
+
+    <!-- Include CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.1/codemirror.min.js"></script>
+    <!-- Include additional CodeMirror modes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.1/mode/python/python.min.js"></script>
+    <!-- Initialize CodeMirror -->
+    <script>
+        var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+            lineNumbers: true,
+            mode: "python", // Default mode
+            theme: "dracula" // Set the theme to Dracula
+        });
+
+        function saveCode() {
+            var code = editor.getValue();
+            // Create a FormData object to send the code data as form data
+            var formData = new FormData();
+            formData.append('code', code);
+
+            fetch('/save/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: formData // Use the FormData object as the request body
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Code saved successfully with ID: ' + data.id);
+                    } else {
+                        alert('Error saving code: ' + JSON.stringify(data.errors));
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+
+        function executeCode() {
+            var code = editor.getValue();
+            fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        'code': code
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("output").innerHTML = data.output.replace(/\n/g, '<br>');
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+
+</html>
